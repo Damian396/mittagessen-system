@@ -1,118 +1,21 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Admin Dashboard</title>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<style>
-body {
-  margin: 0;
-  font-family: Arial;
-  background-color: #14968F;
-  color: white;
-}
-
-.container {
-  max-width: 1000px;
-  margin: auto;
-  padding: 40px;
-}
-
-.card {
-  background: white;
-  color: black;
-  padding: 20px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th {
-  background: #14968F;
-  color: white;
-}
-
-td, th {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-}
-
-button {
-  padding: 10px;
-  margin: 5px;
-  background: #14968F;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-</style>
-</head>
-
-<body>
-
-<div class="container">
-
-<h1>Admin Dashboard</h1>
-
-<div class="card">
-<h2>Export</h2>
-<button onclick="exportWeek()">PDF Wochenübersicht</button>
-<button onclick="exportStats()">Analyse PDF</button>
-</div>
-
-<div class="card">
-<h2>Übersicht (2 Wochen)</h2>
-
-<table id="summaryTable">
-<thead>
-<tr>
-<th>Tag</th>
-<th>Datum</th>
-<th>Menü 1</th>
-<th>Menü 2</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
-
-</div>
-
-<div id="detailContainer"></div>
-
-</div>
-
-<script src="supabase.js"></script>
-
 <script>
 
-// 🔥 DATUM FIX (KEIN UTC BUG)
+// DATUM FIX
 function formatDateLocal(date) {
   const d = new Date(date);
-  const year = d.getFullYear();
-  const month = String(d.getMonth()+1).padStart(2,'0');
-  const day = String(d.getDate()).padStart(2,'0');
-  return `${year}-${month}-${day}`;
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-// 🔥 Arbeitstage
+// ARBEITSTAGE
 function getNextWorkdays(count) {
   const days = [];
   let current = new Date();
 
   while (days.length < count) {
-    const day = current.getDay();
-    if (day !== 0 && day !== 6) {
-      days.push(new Date(current));
-    }
+    const d = current.getDay();
+    if (d !== 0 && d !== 6) days.push(new Date(current));
     current.setDate(current.getDate() + 1);
   }
-
   return days;
 }
 
@@ -120,22 +23,16 @@ function getDayName(d) {
   return ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];
 }
 
-// 🔥 HAUPTFUNKTION
+// LOAD DATA
 async function loadAdminData() {
 
-  const days = getNextWorkdays(10);
-
-  const { data: orders, error } = await supabase
+  const { data: orders, error } = await window.supabaseClient
     .from("orders")
     .select("*");
 
   console.log("ORDERS:", orders);
 
-  if (error) {
-    alert("Fehler beim Laden");
-    console.log(error);
-    return;
-  }
+  const days = getNextWorkdays(10);
 
   const tbody = document.querySelector("#summaryTable tbody");
   const detail = document.getElementById("detailContainer");
@@ -147,12 +44,7 @@ async function loadAdminData() {
 
     const dateStr = formatDateLocal(day);
 
-    // 🔥 DEBUG
-    console.log("Check date:", dateStr);
-
     const dayOrders = orders.filter(o => o.order_date === dateStr);
-
-    console.log("Matches:", dayOrders);
 
     const m1 = dayOrders.filter(o => o.selected_menu === "Menu 1").length;
     const m2 = dayOrders.filter(o => o.selected_menu === "Menu 2").length;
@@ -167,7 +59,6 @@ async function loadAdminData() {
     `;
 
     let list = "";
-
     dayOrders.forEach(o => {
       list += `<li>${o.user_id} → ${o.selected_menu}</li>`;
     });
@@ -181,62 +72,36 @@ async function loadAdminData() {
   });
 }
 
-// 🔥 EXPORT FIX
-async function exportWeek() {
+// PDF UPLOAD
+async function uploadPDF() {
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  const file = document.getElementById("file").files[0];
+  if (!file) return alert("Datei wählen");
 
-  const days = getNextWorkdays(10);
+  const fileName = Date.now() + ".pdf";
 
-  const { data: orders } = await supabase
-    .from("orders")
-    .select("*");
+  const { error } = await window.supabaseClient.storage
+    .from("menus")
+    .upload(fileName, file);
 
-  let y = 10;
+  if (error) {
+    alert("Upload Fehler");
+    console.log(error);
+    return;
+  }
 
-  doc.text("Wochenübersicht", 10, y);
+  const { data } = window.supabaseClient.storage
+    .from("menus")
+    .getPublicUrl(fileName);
 
-  days.forEach(day => {
-
-    const dateStr = formatDateLocal(day);
-
-    const dayOrders = orders.filter(o => o.order_date === dateStr);
-
-    const m1 = dayOrders.filter(o => o.selected_menu === "Menu 1").length;
-    const m2 = dayOrders.filter(o => o.selected_menu === "Menu 2").length;
-
-    y += 8;
-    doc.text(`${dateStr} | M1: ${m1} | M2: ${m2}`, 10, y);
+  await window.supabaseClient.from("menu_files").insert({
+    file_url: data.publicUrl
   });
 
-  doc.save("wochenbericht.pdf");
+  alert("PDF hochgeladen!");
 }
 
-// 🔥 ANALYSE
-async function exportStats() {
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-
-  const { data } = await supabase
-    .from("orders")
-    .select("*");
-
-  const m1 = data.filter(x => x.selected_menu === "Menu 1").length;
-  const m2 = data.filter(x => x.selected_menu === "Menu 2").length;
-
-  doc.text("Analyse", 10, 10);
-  doc.text(`Menu 1: ${m1}`, 10, 20);
-  doc.text(`Menu 2: ${m2}`, 10, 30);
-
-  doc.save("analyse.pdf");
-}
-
-// 🚀 START
+// START
 loadAdminData();
 
 </script>
-
-</body>
-</html>
