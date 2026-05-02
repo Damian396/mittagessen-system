@@ -1,26 +1,63 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Admin</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<title>Admin</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background-color: #14968F;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.card {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  text-align: center;
+  width: 320px;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background: #14968F;
+  color: white;
+  border: none;
+  border-radius: 6px;
+}
+</style>
 </head>
 
 <body>
 
+<div class="card">
 <h2>Wochenmenü erfassen</h2>
 
-<input id="date" type="date"><br><br>
-<input id="menu1" placeholder="Menü 1"><br><br>
-<input id="menu2" placeholder="Menü 2"><br><br>
+<input id="date" type="date">
+<input id="menu1" placeholder="Menü 1">
+<input id="menu2" placeholder="Menü 2">
 
 <button onclick="saveMenu()">Speichern</button>
 
-<h3 id="status"></h3>
+<div id="status"></div>
+</div>
 
 <script src="supabase.js"></script>
 
 <script>
-
 async function saveMenu() {
   const date = document.getElementById("date").value;
   const menu1 = document.getElementById("menu1").value;
@@ -35,7 +72,6 @@ async function saveMenu() {
   document.getElementById("status").innerText =
     error ? error.message : "Gespeichert!";
 }
-
 </script>
 
 </body>
