@@ -55,6 +55,20 @@ input[type="checkbox"] {
   cursor: pointer;
 }
 
+.delete-btn {
+  background: #c0392b;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.delete-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
 .topbar {
   position: absolute;
   top: 10px;
@@ -97,6 +111,7 @@ input[type="checkbox"] {
 <th>Datum</th>
 <th>Menü 1</th>
 <th>Menü 2</th>
+<th>Abmelden</th>
 </tr>
 </thead>
 <tbody id="menuTable"></tbody>
@@ -188,6 +203,7 @@ async function loadDashboard() {
     const m2Checked = myOrder?.selected_menu === "Menu 2" ? "checked" : "";
 
     const disabled = isTooLate(dateStr) ? "disabled" : "";
+    const hasOrder = myOrder ? "" : "disabled";
 
     table.innerHTML += `
       <tr>
@@ -206,6 +222,15 @@ async function loadDashboard() {
             ${m2Checked}
             ${disabled}
             onchange="selectMenu('${dateStr}','Menu 2')">
+        </td>
+
+        <td>
+          <button class="delete-btn"
+            ${hasOrder}
+            ${disabled}
+            onclick="cancel('${dateStr}')">
+            ✖
+          </button>
         </td>
       </tr>
     `;
@@ -228,6 +253,25 @@ async function selectMenu(date, menu){
     selected_menu: menu,
     status: "ordered"
   });
+
+  loadDashboard();
+}
+
+// ---------- ABBESTELLEN ----------
+async function cancel(date){
+
+  if (isTooLate(date)) {
+    alert("Zu spät zum Abmelden!");
+    return;
+  }
+
+  const user = (await supabaseClient.auth.getUser()).data.user;
+
+  await supabaseClient
+    .from("orders")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("order_date", date);
 
   loadDashboard();
 }
