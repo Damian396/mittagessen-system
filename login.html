@@ -1,9 +1,7 @@
 <!DOCTYPE html>
-<html lang="de">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mittagessen Bestellung</title>
+<title>Login</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
@@ -22,12 +20,8 @@ body {
   background: white;
   padding: 30px;
   border-radius: 12px;
-  width: 320px;
+  width: 300px;
   text-align: center;
-}
-
-h1 {
-  color: #14968F;
 }
 
 input {
@@ -45,18 +39,13 @@ button {
   border: none;
   border-radius: 6px;
 }
-
-#status {
-  margin-top: 10px;
-  color: red;
-}
 </style>
 </head>
 
 <body>
 
 <div class="card">
-<h1>Login</h1>
+<h2>Login</h2>
 
 <input id="email" placeholder="Email">
 <input id="password" type="password" placeholder="Passwort">
@@ -71,23 +60,22 @@ button {
 
 <script>
 async function signUp() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+  const { error } = await window.supabaseClient.auth.signUp({
+    email: email.value,
+    password: password.value
+  });
 
-  const { error } = await window.supabaseClient.auth.signUp({ email, password });
-
-  document.getElementById("status").innerText =
-    error ? error.message : "Registriert!";
+  status.innerText = error ? error.message : "Registriert!";
 }
 
 async function login() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  const { error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
+  const { error } = await window.supabaseClient.auth.signInWithPassword({
+    email: email.value,
+    password: password.value
+  });
 
   if (error) {
-    document.getElementById("status").innerText = error.message;
+    status.innerText = error.message;
   } else {
     window.location.href = "dashboard.html";
   }
