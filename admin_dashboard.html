@@ -6,336 +6,226 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script src="supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body {
-  margin: 0;
-  font-family: Arial;
-  background-color: #14968F;
-  color: white;
-}
-
-.topbar {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-}
-
-.topbar button {
-  background: white;
-  border: none;
-  padding: 8px;
-  border-radius: 6px;
-}
-
-.container {
-  max-width: 1000px;
-  margin: auto;
-  padding: 40px;
-}
-
-.card {
-  background: white;
-  color: black;
-  padding: 20px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th {
-  background: #14968F;
-  color: white;
-}
-
-td, th {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-}
+body { margin:0; font-family:Arial; background:#14968F; color:white; }
+.container { max-width:1000px; margin:auto; padding:40px; }
+.card { background:white; color:black; padding:20px; border-radius:12px; margin-bottom:20px; }
 
 button {
-  padding: 10px;
-  margin: 5px;
-  background: #14968F;
-  color: white;
-  border: none;
-  cursor: pointer;
+  background:#14968F;
+  color:white;
+  border:none;
+  padding:8px;
+  cursor:pointer;
+}
+
+.accordion {
+  cursor:pointer;
+  padding:10px;
+  background:#14968F;
+  color:white;
+  border:none;
+  width:100%;
+  text-align:left;
+  margin-top:10px;
+}
+
+.panel {
+  display:none;
+  background:white;
+  color:black;
+  padding:10px;
+  border-radius:8px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="topbar">
-<button onclick="history.back()">⬅ Zurück</button>
-</div>
-
 <div class="container">
 
 <h1>Admin Dashboard</h1>
 
-<!-- PDF UPLOAD -->
 <div class="card">
-<h2>Menü PDF Upload</h2>
+<h2>PDF Upload</h2>
 <input type="file" id="fileInput">
 <button onclick="uploadPDF()">Upload</button>
 </div>
 
-<!-- EXPORT -->
 <div class="card">
 <h2>Export</h2>
 <button onclick="exportWeek()">PDF Wochenübersicht</button>
 <button onclick="exportStats()">Analyse PDF</button>
 </div>
 
-<!-- CHART -->
-<div class="card">
-<h2>Analyse</h2>
-<canvas id="chart"></canvas>
-</div>
-
-<!-- TABELLE -->
-<div class="card">
-<h2>Übersicht (2 Wochen)</h2>
-
-<table id="summaryTable">
-<thead>
-<tr>
-<th>Tag</th>
-<th>Datum</th>
-<th>Menü 1</th>
-<th>Menü 2</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
-
-</div>
-
-<!-- DETAILS -->
-<div id="detailContainer"></div>
+<div id="summary"></div>
+<div id="details"></div>
 
 </div>
 
 <script>
 
 // ---------- HELPERS ----------
-function formatDateLocal(date) {
-  const d = new Date(date);
+function formatDate(d){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-function getNextWorkdays(count) {
-  const days = [];
-  let current = new Date();
-
-  while (days.length < count) {
-    const d = current.getDay();
-    if (d !== 0 && d !== 6) days.push(new Date(current));
-    current.setDate(current.getDate() + 1);
+function getNextWorkdays(n){
+  let days=[], d=new Date();
+  while(days.length<n){
+    if(d.getDay()!=0 && d.getDay()!=6) days.push(new Date(d));
+    d.setDate(d.getDate()+1);
   }
-
   return days;
 }
 
-function getDayName(d) {
-  return ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];
-}
+// ---------- LOAD ----------
+async function loadData(){
 
-// ---------- LOAD DATA ----------
-async function loadAdminData() {
+  const ordersRes = await supabaseClient.from("orders").select("*");
+  const profilesRes = await supabaseClient.from("profiles").select("*");
 
-  try {
-
-    const orderRes = await window.supabaseClient.from("orders").select("*");
-    const profileRes = await window.supabaseClient.from("profiles").select("*");
-
-    console.log("ORDERS:", orderRes);
-    console.log("PROFILES:", profileRes);
-
-    if (orderRes.error || profileRes.error) {
-      alert("Fehler beim Laden");
-      return;
-    }
-
-    const orders = orderRes.data || [];
-    const profiles = profileRes.data || [];
-
-    const days = getNextWorkdays(10);
-
-    const tbody = document.querySelector("#summaryTable tbody");
-    const detail = document.getElementById("detailContainer");
-
-    tbody.innerHTML = "";
-    detail.innerHTML = "";
-
-    days.forEach(day => {
-
-      const dateStr = formatDateLocal(day);
-
-      const dayOrders = orders.filter(o => o.order_date === dateStr);
-
-      const m1 = dayOrders.filter(o => o.selected_menu === "Menu 1").length;
-      const m2 = dayOrders.filter(o => o.selected_menu === "Menu 2").length;
-
-      tbody.innerHTML += `
-        <tr>
-          <td>${getDayName(day)}</td>
-          <td>${dateStr}</td>
-          <td>${m1}</td>
-          <td>${m2}</td>
-        </tr>
-      `;
-
-      let list = "";
-
-      dayOrders.forEach(o => {
-        const user = profiles.find(p => p.id === o.user_id);
-        const name = user ? user.full_name : "Unbekannt";
-
-        list += `<li>${name} → ${o.selected_menu}</li>`;
-      });
-
-      detail.innerHTML += `
-        <div class="card">
-          <h3>${getDayName(day)} - ${dateStr}</h3>
-          <ul>${list || "<li>Keine Bestellungen</li>"}</ul>
-        </div>
-      `;
-    });
-
-  } catch (err) {
-    console.log(err);
-    alert("Admin Fehler");
-  }
-}
-
-// ---------- PDF UPLOAD ----------
-async function uploadPDF() {
-
-  try {
-
-    const file = document.getElementById("fileInput").files[0];
-
-    if (!file) {
-      alert("Bitte Datei wählen");
-      return;
-    }
-
-    const fileName = Date.now() + "_" + file.name;
-
-    const upload = await window.supabaseClient.storage
-      .from("menus")
-      .upload(fileName, file);
-
-    if (upload.error) {
-      console.log(upload.error);
-      alert("Upload Fehler");
-      return;
-    }
-
-    const url = window.supabaseClient
-      .storage
-      .from("menus")
-      .getPublicUrl(fileName).data.publicUrl;
-
-    await window.supabaseClient.from("menu_files").insert({
-      file_url: url
-    });
-
-    alert("PDF erfolgreich hochgeladen!");
-
-  } catch (err) {
-    console.log(err);
-    alert("Upload Fehler");
-  }
-}
-
-// ---------- EXPORT WEEK ----------
-async function exportWeek() {
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-
-  const { data: orders } = await window.supabaseClient
-    .from("orders")
-    .select("*");
+  const orders = ordersRes.data || [];
+  const profiles = profilesRes.data || [];
 
   const days = getNextWorkdays(10);
 
-  let y = 10;
-  doc.text("Wochenübersicht", 10, y);
+  let summaryHTML = `<div class="card"><h2>Übersicht (2 Wochen)</h2><table width="100%">`;
+  summaryHTML += `<tr><th>Datum</th><th>Menu1</th><th>Menu2</th></tr>`;
 
-  days.forEach(day => {
+  let detailsHTML = "";
 
-    const dateStr = formatDateLocal(day);
+  days.forEach(day=>{
+    const d = formatDate(day);
+    const dayOrders = orders.filter(o=>o.order_date===d);
 
-    const dayOrders = (orders || []).filter(o => o.order_date === dateStr);
+    const m1 = dayOrders.filter(x=>x.selected_menu==="Menu 1").length;
+    const m2 = dayOrders.filter(x=>x.selected_menu==="Menu 2").length;
 
-    const m1 = dayOrders.filter(o => o.selected_menu === "Menu 1").length;
-    const m2 = dayOrders.filter(o => o.selected_menu === "Menu 2").length;
+    summaryHTML += `<tr><td>${d}</td><td>${m1}</td><td>${m2}</td></tr>`;
 
-    y += 8;
-    doc.text(`${dateStr} | M1: ${m1} | M2: ${m2}`, 10, y);
+    let list="";
+    dayOrders.forEach(o=>{
+      const p = profiles.find(x=>x.id===o.user_id);
+      list += `<li>${p?.full_name || "?"} → ${o.selected_menu}</li>`;
+    });
+
+    detailsHTML += `
+      <button class="accordion">${d}</button>
+      <div class="panel">
+        <ul>${list || "<li>Keine Bestellungen</li>"}</ul>
+      </div>
+    `;
   });
 
-  doc.save("wochenbericht.pdf");
+  summaryHTML += "</table></div>";
+
+  document.getElementById("summary").innerHTML = summaryHTML;
+  document.getElementById("details").innerHTML = detailsHTML;
+
+  initAccordion();
 }
 
-// ---------- EXPORT STATS ----------
-async function exportStats() {
+// ---------- ACCORDION ----------
+function initAccordion(){
+  document.querySelectorAll(".accordion").forEach(btn=>{
+    btn.onclick = ()=>{
+      const panel = btn.nextElementSibling;
+      panel.style.display = panel.style.display==="block" ? "none" : "block";
+    };
+  });
+}
+
+// ---------- PDF WOCHEN EXPORT ----------
+async function exportWeek(){
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  const { data } = await window.supabaseClient
-    .from("orders")
-    .select("*");
+  const { data:orders } = await supabaseClient.from("orders").select("*");
+  const { data:profiles } = await supabaseClient.from("profiles").select("*");
 
-  const m1 = (data || []).filter(x => x.selected_menu === "Menu 1").length;
-  const m2 = (data || []).filter(x => x.selected_menu === "Menu 2").length;
+  let y=10;
+  doc.text("Wochenreport",10,y);
 
-  doc.text("Analyse", 10, 10);
-  doc.text(`Menu 1: ${m1}`, 10, 20);
-  doc.text(`Menu 2: ${m2}`, 10, 30);
+  const days = getNextWorkdays(5);
+
+  let totalM1=0, totalM2=0;
+
+  days.forEach(day=>{
+    const d = formatDate(day);
+    const dayOrders = orders.filter(o=>o.order_date===d);
+
+    const m1 = dayOrders.filter(x=>x.selected_menu==="Menu 1").length;
+    const m2 = dayOrders.filter(x=>x.selected_menu==="Menu 2").length;
+
+    totalM1 += m1;
+    totalM2 += m2;
+
+    y+=10;
+    doc.text(`${d} | M1:${m1} | M2:${m2}`,10,y);
+
+    dayOrders.forEach(o=>{
+      const p = profiles.find(x=>x.id===o.user_id);
+      y+=5;
+      doc.text(`- ${p?.full_name || "?"} (${o.selected_menu})`,10,y);
+    });
+  });
+
+  y+=10;
+  doc.text(`TOTAL Woche: Menu1=${totalM1} Menu2=${totalM2}`,10,y);
+
+  doc.save("wochenreport.pdf");
+}
+
+// ---------- ANALYSE PDF ----------
+async function exportStats(){
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  const { data } = await supabaseClient.from("orders").select("*");
+
+  // Wochen gruppieren
+  const weeks = {};
+
+  data.forEach(o=>{
+    const week = o.order_date.substring(0,7); // YYYY-MM
+    if(!weeks[week]) weeks[week]=0;
+    weeks[week]++;
+  });
+
+  let y=10;
+  doc.text("Analyse pro Monat",10,y);
+
+  Object.entries(weeks).forEach(([w,v])=>{
+    y+=10;
+    doc.text(`${w}: ${v} Bestellungen`,10,y);
+  });
 
   doc.save("analyse.pdf");
 }
 
-// ---------- CHART ----------
-async function loadChart() {
+// ---------- PDF UPLOAD ----------
+async function uploadPDF(){
 
-  const { data } = await window.supabaseClient
-    .from("orders")
-    .select("*");
+  const file = document.getElementById("fileInput").files[0];
+  if(!file){ alert("Datei wählen"); return;}
 
-  const m1 = (data || []).filter(x => x.selected_menu === "Menu 1").length;
-  const m2 = (data || []).filter(x => x.selected_menu === "Menu 2").length;
+  const name = Date.now()+"_"+file.name;
 
-  const ctx = document.getElementById("chart");
+  await supabaseClient.storage.from("menus").upload(name,file);
 
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: ['Menu 1', 'Menu 2'],
-      datasets: [{
-        label: 'Bestellungen',
-        data: [m1, m2]
-      }]
-    }
-  });
+  const url = supabaseClient.storage.from("menus").getPublicUrl(name).data.publicUrl;
+
+  await supabaseClient.from("menu_files").insert({ file_url:url });
+
+  alert("Upload OK");
 }
 
 // ---------- START ----------
-window.onload = async () => {
-  await loadAdminData();
-  await loadChart();
-};
+loadData();
 
 </script>
 
