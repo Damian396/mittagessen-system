@@ -32,7 +32,6 @@ body {
 table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
 }
 
 th {
@@ -41,7 +40,7 @@ th {
 }
 
 td, th {
-  padding: 12px;
+  padding: 10px;
   border-bottom: 1px solid #ddd;
   text-align: center;
 }
@@ -64,19 +63,8 @@ button {
 <h1>Admin Dashboard</h1>
 
 <div class="card">
-<h2>Menü PDF Upload</h2>
-<input type="file" id="fileInput">
-<button onclick="uploadPDF()">Upload</button>
-</div>
-
-<div class="card">
-<h2>PDF Verwaltung</h2>
-<div id="pdfList">Lade...</div>
-</div>
-
-<div class="card">
 <h2>Export</h2>
-<button onclick="exportWeek()">PDF Tagesliste (Heute + Morgen)</button>
+<button onclick="exportWeek()">PDF Export</button>
 </div>
 
 <div class="card">
@@ -100,7 +88,7 @@ button {
 
 <script>
 
-// ---------- FIX ENCODING ----------
+// ---------- CLEAN ----------
 function cleanText(text) {
   if (!text) return "";
   try {
@@ -129,116 +117,13 @@ function getNextWorkdays(count) {
   return days;
 }
 
+// 🔥 NEU → nächste 2 Arbeitstage
+function getNextTwoWorkdays() {
+  return getNextWorkdays(2);
+}
+
 function getDayName(d) {
   return ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];
-}
-
-// ---------- PDF EXPORT (NEU) ----------
-async function exportWeek() {
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-
-  const { data: orders } = await supabaseClient.from("orders").select("*");
-  const { data: profiles } = await supabaseClient.from("profiles").select("*");
-
-  const today = new Date();
-  const tomorrow = new Date();
-  tomorrow.setDate(today.getDate() + 1);
-
-  const days = [today, tomorrow];
-
-  let y = 15;
-
-  doc.setFontSize(16);
-  doc.text("Bestellungen", 10, y);
-
-  doc.setFontSize(10);
-
-  days.forEach(day => {
-
-    const dateStr = formatDateLocal(day);
-    const dayOrders = orders.filter(o => o.order_date === dateStr);
-
-    y += 10;
-    doc.setFontSize(12);
-    doc.text(`${getDayName(day)} ${dateStr}`, 10, y);
-
-    y += 5;
-    doc.setFontSize(10);
-
-    let leftY = y;
-    let rightY = y;
-
-    dayOrders.forEach((o, index) => {
-
-      const user = profiles.find(p => p.id === o.user_id);
-      const name = cleanText(user ? user.full_name : "Unbekannt");
-
-      const text = `${name} (${o.selected_menu})`;
-
-      // 🔥 2 SPALTEN LOGIK
-      if (index % 2 === 0) {
-        doc.text(text, 10, leftY);
-        leftY += 6;
-      } else {
-        doc.text(text, 110, rightY);
-        rightY += 6;
-      }
-
-    });
-
-    y = Math.max(leftY, rightY) + 5;
-
-  });
-
-  doc.save("tagesliste.pdf");
-}
-
-// ---------- PDF UPLOAD ----------
-async function uploadPDF(){
-  const file = document.getElementById("fileInput").files[0];
-  if(!file) return alert("Bitte Datei wählen");
-
-  const fileName = Date.now() + "_" + file.name;
-
-  await supabaseClient.storage.from("menus").upload(fileName, file);
-
-  const { data } = supabaseClient.storage.from("menus").getPublicUrl(fileName);
-
-  await supabaseClient.from("menu_files").insert({
-    file_url: data.publicUrl
-  });
-
-  loadPDFList();
-}
-
-// ---------- PDF LISTE ----------
-async function loadPDFList(){
-  const { data } = await supabaseClient
-    .from("menu_files")
-    .select("*")
-    .order("created_at", { ascending:false });
-
-  const container = document.getElementById("pdfList");
-  container.innerHTML = "";
-
-  data.forEach(pdf => {
-    container.innerHTML += `
-      <div>
-        ${pdf.file_url}
-        <br>
-        <button onclick="deletePDF('${pdf.file_url}')">Löschen</button>
-      </div>
-    `;
-  });
-}
-
-async function deletePDF(fileUrl){
-  const path = fileUrl.split("/menus/")[1];
-  await supabaseClient.storage.from("menus").remove([path]);
-  await supabaseClient.from("menu_files").delete().eq("file_url", fileUrl);
-  loadPDFList();
 }
 
 // ---------- DASHBOARD ----------
@@ -269,8 +154,81 @@ async function loadAdminData() {
   });
 }
 
+// ---------- PDF EXPORT ----------
+async function exportWeek() {
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  const { data: orders } = await supabaseClient.from("orders").select("*");
+  const { data: profiles } = await supabaseClient.from("profiles").select("*");
+
+  const days = getNextWorkdays(10);
+  const detailDays = getNextTwoWorkdays();
+
+  let y = 10;
+
+  doc.setFontSize(14);
+  doc.text("Übersicht (2 Wochen)", 10, y);
+
+  doc.setFontSize(10);
+
+  // 🔥 Übersicht oben
+  days.forEach(day => {
+
+    const dateStr = formatDateLocal(day);
+    const dayOrders = orders.filter(o => o.order_date === dateStr);
+
+    const m1 = dayOrders.filter(o => o.selected_menu === "Menu 1").length;
+    const m2 = dayOrders.filter(o => o.selected_menu === "Menu 2").length;
+
+    y += 6;
+    doc.text(`${getDayName(day)} ${dateStr} | M1: ${m1} | M2: ${m2}`, 10, y);
+  });
+
+  y += 10;
+  doc.setFontSize(12);
+  doc.text("Details (nächste Arbeitstage)", 10, y);
+
+  doc.setFontSize(10);
+
+  // 🔥 DETAILS
+  detailDays.forEach(day => {
+
+    const dateStr = formatDateLocal(day);
+    const dayOrders = orders.filter(o => o.order_date === dateStr);
+
+    y += 8;
+    doc.text(`${getDayName(day)} ${dateStr}`, 10, y);
+
+    let leftY = y + 5;
+    let rightY = y + 5;
+
+    dayOrders.forEach((o, index) => {
+
+      const user = profiles.find(p => p.id === o.user_id);
+      const name = cleanText(user ? user.full_name : "Unbekannt");
+
+      const text = `${name} (${o.selected_menu} x1)`;
+
+      if (index % 2 === 0) {
+        doc.text(text, 10, leftY);
+        leftY += 6;
+      } else {
+        doc.text(text, 110, rightY);
+        rightY += 6;
+      }
+
+    });
+
+    y = Math.max(leftY, rightY) + 5;
+
+  });
+
+  doc.save("export.pdf");
+}
+
 loadAdminData();
-loadPDFList();
 
 </script>
 
