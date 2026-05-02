@@ -52,6 +52,11 @@ button {
   cursor: pointer;
   margin-top: 10px;
 }
+
+.file-item {
+  border-bottom: 1px solid #ddd;
+  padding: 10px;
+}
 </style>
 </head>
 
@@ -61,11 +66,26 @@ button {
 
 <h1>Admin Dashboard</h1>
 
+<!-- 🔥 PDF UPLOAD -->
+<div class="card">
+<h2>Menü PDF Upload</h2>
+<input type="file" id="fileInput">
+<button onclick="uploadPDF()">Upload</button>
+</div>
+
+<!-- 🔥 PDF LISTE -->
+<div class="card">
+<h2>PDF Verwaltung</h2>
+<div id="pdfList">Lade...</div>
+</div>
+
+<!-- 🔥 EXPORT -->
 <div class="card">
 <h2>Export</h2>
 <button onclick="exportWeek()">PDF Wochenübersicht</button>
 </div>
 
+<!-- 🔥 ÜBERSICHT -->
 <div class="card">
 <h2>2 Wochen Übersicht</h2>
 
@@ -110,7 +130,89 @@ function getDayName(d) {
   return ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];
 }
 
-// ---------- DASHBOARD LADEN ----------
+// ---------- PDF UPLOAD ----------
+async function uploadPDF(){
+
+  const file = document.getElementById("fileInput").files[0];
+
+  if(!file){
+    alert("Bitte Datei wählen");
+    return;
+  }
+
+  const fileName = Date.now() + "_" + file.name;
+
+  const { error } = await supabaseClient
+    .storage
+    .from("menus")
+    .upload(fileName, file);
+
+  if(error){
+    alert("Upload Fehler: " + error.message);
+    return;
+  }
+
+  const { data } = supabaseClient
+    .storage
+    .from("menus")
+    .getPublicUrl(fileName);
+
+  await supabaseClient
+    .from("menu_files")
+    .insert({
+      file_url: data.publicUrl
+    });
+
+  alert("Upload erfolgreich!");
+  loadPDFList();
+}
+
+// ---------- PDF LISTE ----------
+async function loadPDFList(){
+
+  const { data } = await supabaseClient
+    .from("menu_files")
+    .select("*")
+    .order("created_at", { ascending:false });
+
+  const container = document.getElementById("pdfList");
+  container.innerHTML = "";
+
+  if(!data || data.length === 0){
+    container.innerHTML = "Keine PDFs vorhanden";
+    return;
+  }
+
+  data.forEach(pdf => {
+    container.innerHTML += `
+      <div class="file-item">
+        ${pdf.file_url}
+        <br>
+        <button onclick="deletePDF('${pdf.file_url}')">Löschen</button>
+      </div>
+    `;
+  });
+}
+
+// ---------- DELETE ----------
+async function deletePDF(fileUrl){
+
+  if(!confirm("Wirklich löschen?")) return;
+
+  const path = fileUrl.split("/menus/")[1];
+
+  await supabaseClient.storage.from("menus").remove([path]);
+
+  await supabaseClient
+    .from("menu_files")
+    .delete()
+    .eq("file_url", fileUrl);
+
+  alert("Gelöscht!");
+  loadPDFList();
+}
+
+// ---------- DASHBOARD ----------
 async function loadAdminData() {
 
   const { data: orders } = await supabaseClient
@@ -148,13 +250,8 @@ async function exportWeek() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  const { data: orders } = await supabaseClient
-    .from("orders")
-    .select("*");
-
-  const { data: profiles } = await supabaseClient
-    .from("profiles")
-    .select("*");
+  const { data: orders } = await supabaseClient.from("orders").select("*");
+  const { data: profiles } = await supabaseClient.from("profiles").select("*");
 
   const days = getNextWorkdays(10);
 
@@ -162,7 +259,6 @@ async function exportWeek() {
 
   doc.text("Wochenübersicht", 10, y);
 
-  // 🔥 Übersicht
   days.forEach(day => {
 
     const dateStr = formatDateLocal(day);
@@ -178,7 +274,6 @@ async function exportWeek() {
   y += 10;
   doc.text("Details", 10, y);
 
-  // 🔥 Details pro Tag
   days.forEach(day => {
 
     const dateStr = formatDateLocal(day);
@@ -209,6 +304,7 @@ async function exportWeek() {
 
 // ---------- START ----------
 loadAdminData();
+loadPDFList();
 
 </script>
 
