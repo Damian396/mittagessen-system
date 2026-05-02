@@ -1,92 +1,70 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mittagessen Bestellung</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mittagessen Bestellung</title>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #14968F; /* DEINE FARBE */
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background-color: #14968F;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
 
-    .card {
-      background: white;
-      padding: 30px;
-      border-radius: 14px;
-      width: 320px;
-      text-align: center;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-    }
+.card {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  width: 320px;
+  text-align: center;
+}
 
-    h1 {
-      margin-bottom: 20px;
-      color: #14968F;
-    }
+h1 {
+  color: #14968F;
+}
 
-    input {
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-    }
+input {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+}
 
-    button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 10px;
-      border: none;
-      border-radius: 8px;
-      background-color: #14968F;
-      color: white;
-      font-weight: bold;
-      font-size: 15px;
-      cursor: pointer;
-    }
+button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  background: #14968F;
+  color: white;
+  border: none;
+  border-radius: 6px;
+}
 
-    button:hover {
-      background-color: #0f7a75;
-    }
-
-    #status {
-      margin-top: 15px;
-      font-size: 14px;
-      color: red;
-    }
-
-    .title-top {
-      position: absolute;
-      top: 30px;
-      color: white;
-      font-size: 24px;
-      font-weight: bold;
-    }
-  </style>
+#status {
+  margin-top: 10px;
+  color: red;
+}
+</style>
 </head>
 
 <body>
 
-<div class="title-top">Mittagessen Bestellung</div>
-
 <div class="card">
+<h1>Login</h1>
 
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Passwort">
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Passwort">
 
-  <button onclick="signUp()">Registrieren</button>
-  <button onclick="login()">Login</button>
+<button onclick="signUp()">Registrieren</button>
+<button onclick="login()">Login</button>
 
-  <div id="status"></div>
+<div id="status"></div>
 </div>
 
 <script src="supabase.js"></script>
@@ -96,23 +74,17 @@ async function signUp() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  const { error } = await window.supabaseClient.auth.signUp({
-    email,
-    password
-  });
+  const { error } = await window.supabaseClient.auth.signUp({ email, password });
 
   document.getElementById("status").innerText =
-    error ? error.message : "Registrierung erfolgreich!";
+    error ? error.message : "Registriert!";
 }
 
 async function login() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  const { error } = await window.supabaseClient.auth.signInWithPassword({
-    email,
-    password
-  });
+  const { error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
 
   if (error) {
     document.getElementById("status").innerText = error.message;
