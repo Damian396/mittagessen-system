@@ -20,7 +20,7 @@ body {
   background: white;
   padding: 30px;
   border-radius: 12px;
-  width: 300px;
+  width: 320px;
   text-align: center;
 }
 
@@ -39,10 +39,27 @@ button {
   border: none;
   border-radius: 6px;
 }
+
+.topbar {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.topbar button {
+  background: white;
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+}
 </style>
 </head>
 
 <body>
+
+<div class="topbar">
+<button onclick="history.back()">⬅ Zurück</button>
+</div>
 
 <div class="card">
 <h2>Login</h2>
