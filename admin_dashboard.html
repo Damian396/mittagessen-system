@@ -17,8 +17,13 @@ body {
   background: white;
   padding: 20px;
   border-radius: 12px;
-  max-width: 800px;
+  max-width: 900px;
   margin: auto;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
 }
 
 button {
@@ -30,9 +35,11 @@ button {
   border-radius: 5px;
 }
 
-.topbar {
-  display: flex;
-  justify-content: space-between;
+.day {
+  border: 1px solid #ddd;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 8px;
 }
 </style>
 </head>
@@ -46,38 +53,70 @@ button {
 <button onclick="logout()">Logout</button>
 </div>
 
-<h2>Admin Dashboard</h2>
+<h2>Wochenübersicht</h2>
 
-<h3>Menü Datei hochladen</h3>
-<input id="file" type="file">
-<button onclick="upload()">Upload</button>
-
-<h3>Bestellungen</h3>
-<div id="orders"></div>
+<div id="list"></div>
 
 </div>
 
 <script src="supabase.js"></script>
 
 <script>
+
 if (localStorage.getItem("admin_logged") !== "true") {
   window.location.href = "admin.html";
 }
 
-async function load() {
-  const { data } = await window.supabaseClient
-    .from("orders")
-    .select("*");
+function getWeek() {
+  let days = [];
+  let today = new Date();
 
-  orders.innerHTML = data.map(o =>
-    `${o.order_date} - ${o.selected_menu}`
-  ).join("<br>");
+  for (let i = 0; i < 7; i++) {
+    let d = new Date();
+    d.setDate(today.getDate() + i);
+
+    if (d.getDay() !== 0 && d.getDay() !== 6) {
+      days.push(d.toISOString().split("T")[0]);
+    }
+  }
+
+  return days;
 }
 
-function upload() {
-  const file = document.getElementById("file").files[0];
-  const url = URL.createObjectURL(file);
-  localStorage.setItem("menu_file", url);
+async function load() {
+
+  const days = getWeek();
+  let html = "";
+
+  for (let d of days) {
+
+    const orders = await window.supabaseClient
+      .from("orders")
+      .select("*")
+      .eq("order_date", d);
+
+    let names = [];
+
+    for (let o of orders.data) {
+      const p = await window.supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq("id", o.user_id)
+        .single();
+
+      if (p.data) names.push(p.data.full_name + " (" + o.selected_menu + ")");
+    }
+
+    html += `
+      <div class="day">
+        <b>${d}</b><br>
+        Anzahl: ${orders.data.length}<br><br>
+        ${names.join("<br>")}
+      </div>
+    `;
+  }
+
+  list.innerHTML = html;
 }
 
 function logout() {
