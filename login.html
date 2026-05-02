@@ -101,8 +101,6 @@ button.main {
   <div class="switch" onclick="showRegister()">Noch kein Account? Registrieren</div>
 </div>
 
-<div id="status"></div>
-
 </div>
 
 <script src="supabase.js"></script>
@@ -122,11 +120,11 @@ function showLogin() {
   title.innerText = "Login";
 }
 
-// 🔥 REGISTRIEREN (MIT DEBUG)
+// 🔐 REGISTRIEREN
 async function register() {
 
   if (!firstname.value || !lastname.value) {
-    status.innerText = "Bitte Vor- und Nachname eingeben";
+    alert("Bitte Vor- und Nachname eingeben");
     return;
   }
 
@@ -135,24 +133,21 @@ async function register() {
     password: password_reg.value
   });
 
-  console.log("SIGNUP RESULT:", data, error);
+  console.log("SIGNUP:", data, error);
 
   if (error) {
-    status.innerText = error.message;
+    alert(error.message);
     return;
   }
 
   const user = data.user ?? data.session?.user;
 
-  console.log("USER:", user);
-
   if (!user) {
-    status.innerText = "User NULL → Email Confirm Problem!";
+    alert("Registrierung fehlgeschlagen (Email Bestätigung aktiv?)");
     return;
   }
 
-  // INSERT PROFILE
-  const { data: insertData, error: insertError } = await window.supabaseClient
+  const { error: insertError } = await window.supabaseClient
     .from("profiles")
     .insert([{
       id: user.id,
@@ -161,18 +156,17 @@ async function register() {
       full_name: firstname.value + " " + lastname.value
     }]);
 
-  console.log("INSERT RESULT:", insertData, insertError);
-
   if (insertError) {
-    status.innerText = "Insert Fehler: " + insertError.message;
+    console.log(insertError);
+    alert("Fehler beim Speichern Profil");
     return;
   }
 
-  status.innerText = "Registriert! Jetzt einloggen.";
+  alert("Registrierung erfolgreich!");
   showLogin();
 }
 
-// 🔐 LOGIN
+// 🔐 LOGIN MIT POPUPS
 async function login() {
 
   const { data, error } = await window.supabaseClient.auth.signInWithPassword({
@@ -183,10 +177,17 @@ async function login() {
   console.log("LOGIN:", data, error);
 
   if (error) {
-    status.innerText = "Login fehlgeschlagen";
+
+    if (error.message.includes("Invalid login credentials")) {
+      alert("Email oder Passwort falsch!");
+    } else {
+      alert("Login fehlgeschlagen");
+    }
+
     return;
   }
 
+  // 🔍 PROFIL CHECK
   const profile = await window.supabaseClient
     .from("profiles")
     .select("*")
@@ -196,11 +197,12 @@ async function login() {
   console.log("PROFILE:", profile);
 
   if (!profile.data) {
-    status.innerText = "Kein Profil → bitte registrieren!";
+    alert("Kein Profil gefunden → bitte registrieren!");
     await window.supabaseClient.auth.signOut();
     return;
   }
 
+  // ✅ LOGIN OK
   window.location.href = "dashboard.html";
 }
 
