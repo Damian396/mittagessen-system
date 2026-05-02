@@ -3,6 +3,9 @@
 <head>
 <title>Admin Login</title>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script src="supabase.js"></script>
+
 <style>
 body {
   margin: 0;
@@ -12,19 +15,6 @@ body {
   justify-content: center;
   align-items: center;
   height: 100vh;
-}
-
-.topbar {
-  position: absolute;
-  top: 15px;
-  left: 15px;
-}
-
-.topbar button {
-  background: white;
-  border: none;
-  padding: 10px;
-  border-radius: 8px;
 }
 
 .card {
@@ -47,34 +37,46 @@ button {
   background: #14968F;
   color: white;
   border: none;
-  border-radius: 6px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="topbar">
-<button onclick="history.back()">⬅ Zurück</button>
-</div>
-
 <div class="card">
 <h2>Admin Login</h2>
 
-<input id="user" placeholder="Username">
-<input id="pw" type="password" placeholder="Passwort">
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Passwort">
 
 <button onclick="login()">Login</button>
 </div>
 
 <script>
-function login() {
-  if (user.value === "AlterszentrumGontenbad" && pw.value === "123456789") {
-    localStorage.setItem("admin_logged", "true");
-    window.location.href = "admin_dashboard.html";
-  } else {
-    alert("Falsche Daten");
+async function login() {
+
+  const res = await window.supabaseClient.auth.signInWithPassword({
+    email: email.value,
+    password: password.value
+  });
+
+  if (res.error) {
+    alert("Login falsch");
+    return;
   }
+
+  const profile = await window.supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", res.data.user.id)
+    .single();
+
+  if (!profile.data || profile.data.role !== "admin") {
+    alert("Kein Admin!");
+    return;
+  }
+
+  window.location.href = "admin_dashboard.html";
 }
 </script>
 
