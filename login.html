@@ -120,7 +120,7 @@ function showLogin() {
   title.innerText = "Login";
 }
 
-// 🔐 REGISTRIEREN
+// 🔥 REGISTRIERUNG (SMART)
 async function register() {
 
   if (!firstname.value || !lastname.value) {
@@ -135,18 +135,49 @@ async function register() {
 
   console.log("SIGNUP:", data, error);
 
-  if (error) {
-    alert(error.message);
-    return;
+  let user = null;
+
+  // ✅ Neuer User
+  if (!error) {
+    user = data.user ?? data.session?.user;
   }
 
-  const user = data.user ?? data.session?.user;
+  // 🔥 User existiert bereits
+  if (error && error.message.includes("already registered")) {
+
+    alert("User existiert bereits → Profil wird ergänzt");
+
+    const loginRes = await window.supabaseClient.auth.signInWithPassword({
+      email: email_reg.value,
+      password: password_reg.value
+    });
+
+    if (loginRes.error) {
+      alert("Passwort falsch → bitte Login verwenden");
+      return;
+    }
+
+    user = loginRes.data.user;
+  }
 
   if (!user) {
-    alert("Registrierung fehlgeschlagen (Email Bestätigung aktiv?)");
+    alert("User konnte nicht ermittelt werden");
     return;
   }
 
+  // 🔍 Profil prüfen
+  const existingProfile = await window.supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (existingProfile.data) {
+    alert("Profil existiert bereits → bitte Login verwenden");
+    return;
+  }
+
+  // ✅ Profil erstellen
   const { error: insertError } = await window.supabaseClient
     .from("profiles")
     .insert([{
@@ -162,11 +193,11 @@ async function register() {
     return;
   }
 
-  alert("Registrierung erfolgreich!");
+  alert("Profil erfolgreich erstellt!");
   showLogin();
 }
 
-// 🔐 LOGIN MIT POPUPS
+// 🔐 LOGIN
 async function login() {
 
   const { data, error } = await window.supabaseClient.auth.signInWithPassword({
@@ -174,35 +205,24 @@ async function login() {
     password: password.value
   });
 
-  console.log("LOGIN:", data, error);
-
   if (error) {
-
-    if (error.message.includes("Invalid login credentials")) {
-      alert("Email oder Passwort falsch!");
-    } else {
-      alert("Login fehlgeschlagen");
-    }
-
+    alert("Email oder Passwort falsch!");
     return;
   }
 
-  // 🔍 PROFIL CHECK
+  // 🔍 Profil prüfen
   const profile = await window.supabaseClient
     .from("profiles")
     .select("*")
     .eq("id", data.user.id)
     .single();
 
-  console.log("PROFILE:", profile);
-
   if (!profile.data) {
-    alert("Kein Profil gefunden → bitte registrieren!");
+    alert("Kein Profil vorhanden → bitte registrieren!");
     await window.supabaseClient.auth.signOut();
     return;
   }
 
-  // ✅ LOGIN OK
   window.location.href = "dashboard.html";
 }
 
