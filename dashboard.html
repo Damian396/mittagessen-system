@@ -1,22 +1,78 @@
 <!DOCTYPE html>
-<html lang="de">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Mittagessen System</title>
-    <link rel="stylesheet" href="style.css">
+  <title>Bestellung</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
+
 <body>
-    <div class="dashboard-container">
-        <h1>Dashboard</h1>
-        <nav>
-            <a href="index.html">Home</a>
-            <a href="admin.html">Admin</a>
-            <button id="logoutBtn">Logout</button>
-        </nav>
-        <div id="content"></div>
-    </div>
-    <script src="supabase.js"></script>
-    <script src="app.js"></script>
+
+<h2>Mittagessen wählen</h2>
+
+<div id="menu"></div>
+
+<button onclick="order('Menu 1')">Menü 1</button>
+<button onclick="order('Menu 2')">Menü 2</button>
+<button onclick="cancel()">Abmelden</button>
+
+<h3 id="status"></h3>
+
+<script src="supabase.js"></script>
+
+<script>
+
+async function loadMenu() {
+  const today = new Date().toISOString().split("T")[0];
+
+  const { data } = await supabase
+    .from("weekly_menu")
+    .select("*")
+    .eq("menu_date", today)
+    .single();
+
+  if (data) {
+    document.getElementById("menu").innerHTML =
+      `<b>${data.menu_1}</b><br>${data.menu_2}`;
+  }
+}
+
+async function order(menu) {
+
+  const now = new Date();
+  const hour = now.getHours();
+
+  if (hour >= 7) {
+    document.getElementById("status").innerText =
+      "Bestellung für heute geschlossen!";
+    return;
+  }
+
+  const user = await supabase.auth.getUser();
+
+  await supabase.from("orders").insert({
+    user_id: user.data.user.id,
+    order_date: new Date().toISOString().split("T")[0],
+    selected_menu: menu,
+    status: "ordered"
+  });
+
+  document.getElementById("status").innerText = "Bestellt!";
+}
+
+async function cancel() {
+  const user = await supabase.auth.getUser();
+
+  await supabase
+    .from("orders")
+    .update({ status: "cancelled" })
+    .eq("user_id", user.data.user.id);
+
+  document.getElementById("status").innerText = "Abgemeldet!";
+}
+
+loadMenu();
+
+</script>
+
 </body>
 </html>
