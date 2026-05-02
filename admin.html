@@ -1,22 +1,51 @@
 <!DOCTYPE html>
-<html lang="de">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Mittagessen System</title>
-    <link rel="stylesheet" href="style.css">
+  <title>Admin</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
+
 <body>
-    <div class="admin-container">
-        <h1>Admin Panel</h1>
-        <nav>
-            <a href="index.html">Home</a>
-            <a href="dashboard.html">Dashboard</a>
-            <button id="logoutBtn">Logout</button>
-        </nav>
-        <div id="adminContent"></div>
-    </div>
-    <script src="supabase.js"></script>
-    <script src="app.js"></script>
+
+<h2>Wochenmenü erfassen</h2>
+
+<input id="date" type="date"><br><br>
+<input id="menu1" placeholder="Menü 1"><br><br>
+<input id="menu2" placeholder="Menü 2"><br><br>
+
+<button onclick="saveMenu()">Speichern</button>
+
+<h3>Bestellungen</h3>
+<div id="orders"></div>
+
+<script src="supabase.js"></script>
+
+<script>
+
+async function saveMenu() {
+  const date = document.getElementById("date").value;
+  const menu1 = document.getElementById("menu1").value;
+  const menu2 = document.getElementById("menu2").value;
+
+  await supabase.from("weekly_menu").insert({
+    menu_date: date,
+    menu_1: menu1,
+    menu_2: menu2
+  });
+
+  alert("Gespeichert!");
+}
+
+async function loadOrders() {
+  const { data } = await supabase.from("orders").select("*");
+
+  document.getElementById("orders").innerHTML =
+    JSON.stringify(data, null, 2);
+}
+
+loadOrders();
+
+</script>
+
 </body>
 </html>
