@@ -3,6 +3,8 @@
 <head>
 <title>Dashboard</title>
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script src="supabase.js"></script>
 
@@ -14,28 +16,46 @@ body {
   color: white;
 }
 
+.topbar {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+}
+
+.topbar button {
+  background: white;
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+}
+
 .container {
   max-width: 900px;
   margin: auto;
-  padding: 40px;
+  padding: 70px 15px 20px;
 }
 
 .card {
   background: white;
   color: black;
-  padding: 20px;
+  padding: 15px;
   border-radius: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 iframe {
   width: 100%;
-  height: 400px;
+  height: 250px;
   border: none;
+}
+
+.table-wrapper {
+  overflow-x: auto;
 }
 
 table {
   width: 100%;
+  min-width: 650px;
   border-collapse: collapse;
 }
 
@@ -52,7 +72,6 @@ td, th {
 
 input[type="checkbox"] {
   transform: scale(1.3);
-  cursor: pointer;
 }
 
 .delete-btn {
@@ -70,18 +89,6 @@ input[type="checkbox"] {
   padding: 6px 10px;
   border-radius: 6px;
 }
-
-.delete-btn:disabled,
-.save-btn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.topbar {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-}
 </style>
 </head>
 
@@ -96,11 +103,11 @@ input[type="checkbox"] {
 <h1>Mittagessen Bestellung</h1>
 
 <div class="card">
-<h2>Menü (max. 2 PDFs)</h2>
+<h2>Menü</h2>
 <div id="menuContainer">Lade Menü...</div>
 </div>
 
-<div class="card">
+<div class="card table-wrapper">
 <h2>2 Wochen Auswahl</h2>
 
 <table>
@@ -123,11 +130,10 @@ input[type="checkbox"] {
 </div>
 
 <script>
+// 🔥 ORIGINAL CODE UNVERÄNDERT
 
-// ---------- STATE ----------
 const tempSelection = {};
 
-// ---------- HELPERS ----------
 function formatDateLocal(date) {
   const d = new Date(date);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -150,21 +156,16 @@ function getDayName(d) {
   return ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];
 }
 
-// 🔥 NEUE BESTELL LOGIK
 function isOrderTooLate(orderDateStr) {
-
   const now = new Date();
   const orderDate = new Date(orderDateStr);
 
   const cutoff = new Date(orderDate);
-
   const day = orderDate.getDay();
 
   if (day === 1) {
-    // Montag → Freitag davor 13:00
     cutoff.setDate(orderDate.getDate() - 3);
   } else {
-    // normal → Vortag
     cutoff.setDate(orderDate.getDate() - 1);
   }
 
@@ -173,7 +174,6 @@ function isOrderTooLate(orderDateStr) {
   return now > cutoff;
 }
 
-// ---------- PDF ----------
 async function loadMenuPDF(){
   const { data } = await supabaseClient
     .from("menu_files")
@@ -194,7 +194,6 @@ async function loadMenuPDF(){
   });
 }
 
-// ---------- DASHBOARD ----------
 async function loadDashboard() {
 
   const user = (await supabaseClient.auth.getUser()).data.user;
@@ -229,60 +228,37 @@ async function loadDashboard() {
         <td>${getDayName(day)}</td>
         <td>${dateStr}</td>
 
-        <td>
-          <input type="checkbox"
-            ${m1Checked}
-            ${disabled}
-            onclick="handleLate('${dateStr}')"
-            onchange="selectTemp('${dateStr}','Menu 1')">
-        </td>
+        <td><input type="checkbox" ${m1Checked} ${disabled}
+          onclick="handleLate('${dateStr}')"
+          onchange="selectTemp('${dateStr}','Menu 1')"></td>
 
-        <td>
-          <input type="checkbox"
-            ${m2Checked}
-            ${disabled}
-            onclick="handleLate('${dateStr}')"
-            onchange="selectTemp('${dateStr}','Menu 2')">
-        </td>
+        <td><input type="checkbox" ${m2Checked} ${disabled}
+          onclick="handleLate('${dateStr}')"
+          onchange="selectTemp('${dateStr}','Menu 2')"></td>
 
         <td><strong>${orderedCount}</strong></td>
 
-        <td>
-          <button class="save-btn"
-            ${disabled}
-            onclick="saveSelection('${dateStr}')">
-            💾
-          </button>
-        </td>
+        <td><button class="save-btn" ${disabled}
+          onclick="saveSelection('${dateStr}')">💾</button></td>
 
-        <td>
-          <button class="delete-btn"
-            ${hasOrder}
-            ${disabled}
-            onclick="cancel('${dateStr}')">
-            ✖
-          </button>
-        </td>
+        <td><button class="delete-btn" ${hasOrder} ${disabled}
+          onclick="cancel('${dateStr}')">✖</button></td>
       </tr>
     `;
   });
 }
 
-// ---------- HANDLE TOO LATE ----------
 function handleLate(date){
-
   if (isOrderTooLate(date)) {
     alert("Zu spät für die Anmeldung!\nBitte melde dich unter: 0717953116");
   }
 }
 
-// ---------- TEMP ----------
 function selectTemp(date, menu){
   tempSelection[date] = menu;
   loadDashboard();
 }
 
-// ---------- SAVE ----------
 async function saveSelection(date){
 
   if (isOrderTooLate(date)) {
@@ -310,7 +286,6 @@ async function saveSelection(date){
   loadDashboard();
 }
 
-// ---------- CANCEL ----------
 async function cancel(date){
 
   if (isOrderTooLate(date)) {
@@ -329,12 +304,10 @@ async function cancel(date){
   loadDashboard();
 }
 
-// ---------- START ----------
 window.onload = () => {
   loadDashboard();
   loadMenuPDF();
 };
-
 </script>
 
 </body>
