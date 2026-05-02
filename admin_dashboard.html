@@ -13,20 +13,6 @@ body {
   color: white;
 }
 
-.topbar {
-  position: absolute;
-  top: 15px;
-  left: 15px;
-}
-
-.topbar button {
-  background: white;
-  border: none;
-  padding: 10px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
 .container {
   max-width: 1000px;
   margin: auto;
@@ -60,16 +46,12 @@ td, th {
 
 <body>
 
-<div class="topbar">
-<button onclick="history.back()">⬅ Zurück</button>
-</div>
-
 <div class="container">
 
 <h1>Admin Übersicht</h1>
 
 <div class="card">
-<h2>Wochenübersicht</h2>
+<h2>Nächste 2 Wochen</h2>
 <table id="summaryTable">
 <thead>
 <tr>
@@ -91,12 +73,22 @@ td, th {
 
 <script>
 
-// 👉 Kalenderwoche (immer aktuelle Woche)
-function getMonday(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(d.setDate(diff));
+// 🔥 NEU: Arbeitstage generieren
+function getNextWorkdays(count) {
+  const days = [];
+  let current = new Date();
+
+  while (days.length < count) {
+    const day = current.getDay();
+
+    if (day !== 0 && day !== 6) {
+      days.push(new Date(current));
+    }
+
+    current.setDate(current.getDate() + 1);
+  }
+
+  return days;
 }
 
 function formatDate(date) {
@@ -109,14 +101,7 @@ function getDayName(date) {
 
 async function loadAdminData() {
 
-  const monday = getMonday(new Date());
-
-  const days = [];
-  for (let i = 0; i < 5; i++) {
-    const d = new Date(monday);
-    d.setDate(d.getDate() + i);
-    days.push(d);
-  }
+  const days = getNextWorkdays(10);
 
   const { data: orders } = await window.supabaseClient
     .from("orders")
@@ -153,7 +138,7 @@ async function loadAdminData() {
     let list = "";
 
     dayOrders.forEach(o => {
-      list += `<li>${o.profiles?.full_name} → ${o.selected_menu}</li>`;
+      list += `<li>${o.profiles?.full_name || "Unbekannt"} → ${o.selected_menu}</li>`;
     });
 
     detailContainer.innerHTML += `
