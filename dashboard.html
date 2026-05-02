@@ -61,10 +61,18 @@ input[type="checkbox"] {
   border: none;
   padding: 6px 10px;
   border-radius: 6px;
-  cursor: pointer;
 }
 
-.delete-btn:disabled {
+.save-btn {
+  background: #27ae60;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.delete-btn:disabled,
+.save-btn:disabled {
   background: #ccc;
   cursor: not-allowed;
 }
@@ -73,13 +81,6 @@ input[type="checkbox"] {
   position: absolute;
   top: 10px;
   left: 10px;
-}
-
-.topbar button {
-  background: white;
-  border: none;
-  padding: 8px;
-  border-radius: 6px;
 }
 </style>
 </head>
@@ -94,13 +95,11 @@ input[type="checkbox"] {
 
 <h1>Mittagessen Bestellung</h1>
 
-<!-- 🔥 PDF ANZEIGE (WIEDER DRIN) -->
 <div class="card">
 <h2>Menü (max. 2 PDFs)</h2>
 <div id="menuContainer">Lade Menü...</div>
 </div>
 
-<!-- 🔥 TABELLE -->
 <div class="card">
 <h2>2 Wochen Auswahl</h2>
 
@@ -112,6 +111,7 @@ input[type="checkbox"] {
 <th>Menü 1</th>
 <th>Menü 2</th>
 <th>Bestellt</th>
+<th>Speichern</th>
 <th>Abmelden</th>
 </tr>
 </thead>
@@ -123,6 +123,9 @@ input[type="checkbox"] {
 </div>
 
 <script>
+
+// ---------- STATE ----------
+const tempSelection = {};
 
 // ---------- HELPERS ----------
 function formatDateLocal(date) {
@@ -147,15 +150,31 @@ function getDayName(d) {
   return ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];
 }
 
-function isTooLate(dateStr) {
+// 🔥 NEUE BESTELL LOGIK
+function isOrderTooLate(orderDateStr) {
+
   const now = new Date();
-  const todayStr = formatDateLocal(now);
-  return dateStr === todayStr && now.getHours() >= 7;
+  const orderDate = new Date(orderDateStr);
+
+  const cutoff = new Date(orderDate);
+
+  const day = orderDate.getDay();
+
+  if (day === 1) {
+    // Montag → Freitag davor 13:00
+    cutoff.setDate(orderDate.getDate() - 3);
+  } else {
+    // normal → Vortag
+    cutoff.setDate(orderDate.getDate() - 1);
+  }
+
+  cutoff.setHours(13, 0, 0, 0);
+
+  return now > cutoff;
 }
 
-// ---------- PDF LADEN ----------
+// ---------- PDF ----------
 async function loadMenuPDF(){
-
   const { data } = await supabaseClient
     .from("menu_files")
     .select("*")
@@ -180,12 +199,6 @@ async function loadDashboard() {
 
   const user = (await supabaseClient.auth.getUser()).data.user;
 
-  if (!user) {
-    alert("Nicht eingeloggt!");
-    window.location.href = "login.html";
-    return;
-  }
-
   const { data: orders } = await supabaseClient
     .from("orders")
     .select("*")
@@ -200,10 +213,13 @@ async function loadDashboard() {
     const dateStr = formatDateLocal(day);
     const myOrder = orders.find(o => o.order_date === dateStr);
 
-    const m1Checked = myOrder?.selected_menu === "Menu 1" ? "checked" : "";
-    const m2Checked = myOrder?.selected_menu === "Menu 2" ? "checked" : "";
+    const selected = tempSelection[dateStr] || myOrder?.selected_menu;
 
-    const disabled = isTooLate(dateStr) ? "disabled" : "";
+    const m1Checked = selected === "Menu 1" ? "checked" : "";
+    const m2Checked = selected === "Menu 2" ? "checked" : "";
+
+    const tooLate = isOrderTooLate(dateStr);
+    const disabled = tooLate ? "disabled" : "";
     const hasOrder = myOrder ? "" : "disabled";
 
     const orderedCount = myOrder ? "1" : "0";
@@ -217,17 +233,27 @@ async function loadDashboard() {
           <input type="checkbox"
             ${m1Checked}
             ${disabled}
-            onchange="selectMenu('${dateStr}','Menu 1')">
+            onclick="handleLate('${dateStr}')"
+            onchange="selectTemp('${dateStr}','Menu 1')">
         </td>
 
         <td>
           <input type="checkbox"
             ${m2Checked}
             ${disabled}
-            onchange="selectMenu('${dateStr}','Menu 2')">
+            onclick="handleLate('${dateStr}')"
+            onchange="selectTemp('${dateStr}','Menu 2')">
         </td>
 
         <td><strong>${orderedCount}</strong></td>
+
+        <td>
+          <button class="save-btn"
+            ${disabled}
+            onclick="saveSelection('${dateStr}')">
+            💾
+          </button>
+        </td>
 
         <td>
           <button class="delete-btn"
@@ -242,11 +268,32 @@ async function loadDashboard() {
   });
 }
 
-// ---------- MENU AUSWAHL ----------
-async function selectMenu(date, menu){
+// ---------- HANDLE TOO LATE ----------
+function handleLate(date){
 
-  if (isTooLate(date)) {
-    alert("Zu spät!");
+  if (isOrderTooLate(date)) {
+    alert("Zu spät für die Anmeldung!\nBitte melde dich unter: 0717953116");
+  }
+}
+
+// ---------- TEMP ----------
+function selectTemp(date, menu){
+  tempSelection[date] = menu;
+  loadDashboard();
+}
+
+// ---------- SAVE ----------
+async function saveSelection(date){
+
+  if (isOrderTooLate(date)) {
+    alert("Zu spät für die Anmeldung!\nBitte melde dich unter: 0717953116");
+    return;
+  }
+
+  const menu = tempSelection[date];
+
+  if (!menu) {
+    alert("Bitte zuerst Menü wählen");
     return;
   }
 
@@ -259,14 +306,15 @@ async function selectMenu(date, menu){
     status: "ordered"
   });
 
+  delete tempSelection[date];
   loadDashboard();
 }
 
-// ---------- ABBESTELLEN ----------
+// ---------- CANCEL ----------
 async function cancel(date){
 
-  if (isTooLate(date)) {
-    alert("Zu spät zum Abmelden!");
+  if (isOrderTooLate(date)) {
+    alert("Zu spät für die Abmeldung!");
     return;
   }
 
@@ -284,7 +332,7 @@ async function cancel(date){
 // ---------- START ----------
 window.onload = () => {
   loadDashboard();
-  loadMenuPDF(); // 🔥 WICHTIG
+  loadMenuPDF();
 };
 
 </script>
