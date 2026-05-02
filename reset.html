@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Neues Passwort</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script src="supabase.js"></script>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background-color: #14968F;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.card {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  width: 340px;
+  text-align: center;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin: 6px 0;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background: #14968F;
+  color: white;
+  border: none;
+  border-radius: 6px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>Neues Passwort setzen</h2>
+
+<input id="password" type="password" placeholder="Neues Passwort">
+
+<button onclick="updatePassword()">Speichern</button>
+
+</div>
+
+<script>
+
+async function updatePassword() {
+
+  if (!password.value) {
+    alert("Bitte Passwort eingeben");
+    return;
+  }
+
+  const { error } = await supabaseClient.auth.updateUser({
+    password: password.value
+  });
+
+  if (error) {
+    alert("Fehler: " + error.message);
+  } else {
+    alert("Passwort erfolgreich geändert!");
+    window.location.href = "login.html";
+  }
+}
+
+</script>
+
+</body>
+</html>
