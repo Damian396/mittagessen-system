@@ -5,14 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mittagessen Bestellung</title>
 
-  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
   <style>
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: linear-gradient(135deg, #4CAF50, #2E7D32);
+      background-color: #14968F; /* DEINE FARBE */
       display: flex;
       justify-content: center;
       align-items: center;
@@ -22,47 +21,41 @@
     .card {
       background: white;
       padding: 30px;
-      border-radius: 12px;
+      border-radius: 14px;
       width: 320px;
       text-align: center;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
     }
 
     h1 {
       margin-bottom: 20px;
-      color: #2E7D32;
+      color: #14968F;
     }
 
     input {
       width: 100%;
-      padding: 10px;
-      margin: 8px 0;
-      border-radius: 6px;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 8px;
       border: 1px solid #ccc;
+      font-size: 14px;
     }
 
     button {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       margin-top: 10px;
       border: none;
-      border-radius: 6px;
-      background-color: #4CAF50;
+      border-radius: 8px;
+      background-color: #14968F;
       color: white;
       font-weight: bold;
+      font-size: 15px;
       cursor: pointer;
     }
 
     button:hover {
-      background-color: #388E3C;
-    }
-
-    .secondary {
-      background-color: #777;
-    }
-
-    .secondary:hover {
-      background-color: #555;
+      background-color: #0f7a75;
     }
 
     #status {
@@ -70,13 +63,22 @@
       font-size: 14px;
       color: red;
     }
+
+    .title-top {
+      position: absolute;
+      top: 30px;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+    }
   </style>
 </head>
 
 <body>
 
+<div class="title-top">Mittagessen Bestellung</div>
+
 <div class="card">
-  <h1>Mittagessen Bestellung</h1>
 
   <input id="email" placeholder="Email">
   <input id="password" type="password" placeholder="Passwort">
