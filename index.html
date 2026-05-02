@@ -1,23 +1,32 @@
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mittagessen System</title>
+
+    <!-- Styles -->
     <link rel="stylesheet" href="style.css">
+
+    <!-- Supabase (nur EINMAL!) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
+
 <body>
+
     <div class="container">
         <h1>Willkommen zum Mittagessen System</h1>
+
         <nav>
-            <a href="login.html">Login</a>
-            <a href="dashboard.html">Dashboard</a>
+            <a href="login.html">Login</a><br><br>
+            <a href="dashboard.html">Dashboard</a><br><br>
             <a href="admin.html">Admin</a>
         </nav>
     </div>
+
+    <!-- Scripts (Reihenfolge wichtig!) -->
     <script src="supabase.js"></script>
     <script src="app.js"></script>
-    <script src="supabase.js"></script>
+
 </body>
 </html>
