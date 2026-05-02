@@ -51,6 +51,10 @@ button {
   border: none;
   cursor: pointer;
 }
+
+input[type="file"] {
+  margin-top: 10px;
+}
 </style>
 </head>
 
@@ -65,6 +69,7 @@ button {
 <h2>Menü PDF Upload</h2>
 
 <input type="file" id="fileInput">
+<br>
 <button onclick="uploadPDF()">Upload</button>
 
 </div>
@@ -131,8 +136,17 @@ function getDayName(d) {
   return ["So","Mo","Di","Mi","Do","Fr","Sa"][d.getDay()];
 }
 
-// 🔥 PDF UPLOAD (FINAL FIX)
+//
+// 🔥🔥🔥 UPLOAD FIX + DEBUG
+//
 async function uploadPDF(){
+
+  console.log("=== START UPLOAD ===");
+
+  if (!window.supabaseClient) {
+    alert("Supabase Client NICHT geladen!");
+    return;
+  }
 
   const file = document.getElementById("fileInput").files[0];
 
@@ -141,44 +155,63 @@ async function uploadPDF(){
     return;
   }
 
+  console.log("FILE:", file);
+
   const fileName = Date.now() + "_" + file.name;
 
-  // 🔥 Upload
-  const { data, error } = await supabaseClient
+  // 🔥 UPLOAD
+  const { data, error } = await window.supabaseClient
     .storage
     .from("menus")
     .upload(fileName, file);
 
+  console.log("UPLOAD RESULT:", data, error);
+
   if(error){
-    console.log("UPLOAD ERROR:", error);
-    alert("Upload fehlgeschlagen");
+    alert("UPLOAD FEHLER: " + error.message);
     return;
   }
 
-  // 🔥 Public URL holen
-  const { data: publicUrlData } = supabaseClient
+  // 🔥 PUBLIC URL
+  const { data: publicData } = window.supabaseClient
     .storage
     .from("menus")
     .getPublicUrl(fileName);
 
-  const url = publicUrlData.publicUrl;
+  console.log("PUBLIC URL:", publicData);
 
-  console.log("PDF URL:", url);
+  if(!publicData || !publicData.publicUrl){
+    alert("Fehler beim Generieren der URL");
+    return;
+  }
 
-  // 🔥 In DB speichern
-  await supabaseClient
+  // 🔥 DB SAVE
+  const { error: dbError } = await window.supabaseClient
     .from("menu_files")
-    .insert({ file_url: url });
+    .insert({
+      file_url: publicData.publicUrl
+    });
+
+  console.log("DB RESULT:", dbError);
+
+  if(dbError){
+    alert("DB Fehler: " + dbError.message);
+    return;
+  }
 
   alert("Upload erfolgreich!");
+
+  // 🔥 Optional: neu laden
+  location.reload();
 }
+
 
 // 🔥 ADMIN DATEN LADEN
 async function loadAdminData() {
 
   const days = getNextWorkdays(10);
 
-  const { data: orders, error } = await supabaseClient
+  const { data: orders, error } = await window.supabaseClient
     .from("orders")
     .select("*");
 
@@ -227,6 +260,7 @@ async function loadAdminData() {
   });
 }
 
+
 // 🔥 PDF EXPORT
 async function exportWeek() {
 
@@ -235,7 +269,7 @@ async function exportWeek() {
 
   const days = getNextWorkdays(10);
 
-  const { data: orders } = await supabaseClient
+  const { data: orders } = await window.supabaseClient
     .from("orders")
     .select("*");
 
@@ -259,13 +293,14 @@ async function exportWeek() {
   doc.save("wochenbericht.pdf");
 }
 
+
 // 🔥 ANALYSE EXPORT
 async function exportStats() {
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  const { data } = await supabaseClient
+  const { data } = await window.supabaseClient
     .from("orders")
     .select("*");
 
@@ -278,6 +313,7 @@ async function exportStats() {
 
   doc.save("analyse.pdf");
 }
+
 
 // 🚀 START
 loadAdminData();
