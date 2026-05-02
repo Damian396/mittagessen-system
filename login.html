@@ -66,6 +66,13 @@ button.main {
   cursor: pointer;
   color: #14968F;
 }
+
+.forgot {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #14968F;
+  cursor: pointer;
+}
 </style>
 </head>
 
@@ -97,6 +104,9 @@ button.main {
   <input id="password" type="password" placeholder="Passwort">
 
   <button class="main" onclick="login()">Login</button>
+
+  <!-- 🔥 NEU -->
+  <div class="forgot" onclick="resetPassword()">Passwort vergessen?</div>
 
   <div class="switch" onclick="showRegister()">Noch kein Account? Registrieren</div>
 </div>
@@ -133,16 +143,12 @@ async function register() {
     password: password_reg.value
   });
 
-  console.log("SIGNUP:", data, error);
-
   let user = null;
 
-  // ✅ Neuer User
   if (!error) {
     user = data.user ?? data.session?.user;
   }
 
-  // 🔥 User existiert bereits
   if (error && error.message.includes("already registered")) {
 
     alert("User existiert bereits → Profil wird ergänzt");
@@ -165,7 +171,6 @@ async function register() {
     return;
   }
 
-  // 🔍 Profil prüfen
   const existingProfile = await window.supabaseClient
     .from("profiles")
     .select("*")
@@ -177,7 +182,6 @@ async function register() {
     return;
   }
 
-  // ✅ Profil erstellen
   const { error: insertError } = await window.supabaseClient
     .from("profiles")
     .insert([{
@@ -188,7 +192,6 @@ async function register() {
     }]);
 
   if (insertError) {
-    console.log(insertError);
     alert("Fehler beim Speichern Profil");
     return;
   }
@@ -210,7 +213,6 @@ async function login() {
     return;
   }
 
-  // 🔍 Profil prüfen
   const profile = await window.supabaseClient
     .from("profiles")
     .select("*")
@@ -224,6 +226,25 @@ async function login() {
   }
 
   window.location.href = "dashboard.html";
+}
+
+// 🔥 PASSWORD RESET
+async function resetPassword() {
+
+  if (!email.value) {
+    alert("Bitte Email eingeben!");
+    return;
+  }
+
+  const { error } = await window.supabaseClient.auth.resetPasswordForEmail(email.value, {
+    redirectTo: window.location.origin + "/reset.html"
+  });
+
+  if (error) {
+    alert("Fehler: " + error.message);
+  } else {
+    alert("Email zum Zurücksetzen wurde gesendet!");
+  }
 }
 
 </script>
