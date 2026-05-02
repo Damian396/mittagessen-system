@@ -122,7 +122,7 @@ function showLogin() {
   title.innerText = "Login";
 }
 
-// 🔐 REGISTRIEREN (FIXED)
+// 🔥 REGISTRIEREN (MIT DEBUG)
 async function register() {
 
   if (!firstname.value || !lastname.value) {
@@ -135,30 +135,36 @@ async function register() {
     password: password_reg.value
   });
 
+  console.log("SIGNUP RESULT:", data, error);
+
   if (error) {
     status.innerText = error.message;
     return;
   }
 
-  const user = data.user;
+  const user = data.user ?? data.session?.user;
+
+  console.log("USER:", user);
 
   if (!user) {
-    status.innerText = "User konnte nicht erstellt werden (Email bestätigen?)";
+    status.innerText = "User NULL → Email Confirm Problem!";
     return;
   }
 
-  const { error: profileError } = await window.supabaseClient
+  // INSERT PROFILE
+  const { data: insertData, error: insertError } = await window.supabaseClient
     .from("profiles")
-    .insert({
+    .insert([{
       id: user.id,
       first_name: firstname.value,
       last_name: lastname.value,
       full_name: firstname.value + " " + lastname.value
-    });
+    }]);
 
-  if (profileError) {
-    console.error(profileError);
-    status.innerText = "Fehler beim Speichern Profil!";
+  console.log("INSERT RESULT:", insertData, insertError);
+
+  if (insertError) {
+    status.innerText = "Insert Fehler: " + insertError.message;
     return;
   }
 
@@ -166,13 +172,15 @@ async function register() {
   showLogin();
 }
 
-// 🔐 LOGIN MIT PROFIL CHECK
+// 🔐 LOGIN
 async function login() {
 
   const { data, error } = await window.supabaseClient.auth.signInWithPassword({
     email: email.value,
     password: password.value
   });
+
+  console.log("LOGIN:", data, error);
 
   if (error) {
     status.innerText = "Login fehlgeschlagen";
@@ -185,8 +193,10 @@ async function login() {
     .eq("id", data.user.id)
     .single();
 
+  console.log("PROFILE:", profile);
+
   if (!profile.data) {
-    status.innerText = "Bitte zuerst registrieren!";
+    status.innerText = "Kein Profil → bitte registrieren!";
     await window.supabaseClient.auth.signOut();
     return;
   }
