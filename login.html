@@ -1,21 +1,91 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
-  <title>Login</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mittagessen Bestellung</title>
+
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #4CAF50, #2E7D32);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      width: 320px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: #2E7D32;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 6px;
+      background-color: #4CAF50;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #388E3C;
+    }
+
+    .secondary {
+      background-color: #777;
+    }
+
+    .secondary:hover {
+      background-color: #555;
+    }
+
+    #status {
+      margin-top: 15px;
+      font-size: 14px;
+      color: red;
+    }
+  </style>
 </head>
 
 <body>
 
-<h2>Login / Registrierung</h2>
+<div class="card">
+  <h1>Mittagessen Bestellung</h1>
 
-<input id="email" placeholder="Email"><br><br>
-<input id="password" type="password" placeholder="Passwort"><br><br>
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Passwort">
 
-<button onclick="signUp()">Registrieren</button>
-<button onclick="login()">Login</button>
+  <button onclick="signUp()">Registrieren</button>
+  <button onclick="login()">Login</button>
 
-<h3 id="status"></h3>
+  <div id="status"></div>
+</div>
 
 <script src="supabase.js"></script>
 
@@ -30,7 +100,7 @@ async function signUp() {
   });
 
   document.getElementById("status").innerText =
-    error ? error.message : "Registriert!";
+    error ? error.message : "Registrierung erfolgreich!";
 }
 
 async function login() {
