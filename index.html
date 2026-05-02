@@ -1,32 +1,52 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mittagessen System</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mittagessen Bestellung</title>
 
-    <!-- Styles -->
-    <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background-color: #14968F;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
 
-    <!-- Supabase (nur EINMAL!) -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    .card {
+      text-align: center;
+    }
+
+    a {
+      display: block;
+      margin: 15px;
+      padding: 12px;
+      background: white;
+      color: #14968F;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    a:hover {
+      background: #e0e0e0;
+    }
+  </style>
 </head>
 
 <body>
 
-    <div class="container">
-        <h1>Willkommen zum Mittagessen System</h1>
+<div class="card">
+  <h1>Mittagessen Bestellung</h1>
 
-        <nav>
-            <a href="login.html">Login</a><br><br>
-            <a href="dashboard.html">Dashboard</a><br><br>
-            <a href="admin.html">Admin</a>
-        </nav>
-    </div>
-
-    <!-- Scripts (Reihenfolge wichtig!) -->
-    <script src="supabase.js"></script>
-    <script src="app.js"></script>
+  <a href="login.html">Login</a>
+  <a href="dashboard.html">Dashboard</a>
+  <a href="admin.html">Admin</a>
+</div>
 
 </body>
 </html>
