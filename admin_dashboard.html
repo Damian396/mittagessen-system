@@ -22,9 +22,8 @@ body {
 .topbar button {
   background: white;
   border: none;
-  padding: 10px 14px;
+  padding: 10px;
   border-radius: 8px;
-  font-weight: bold;
   cursor: pointer;
 }
 
@@ -42,18 +41,9 @@ body {
   margin-bottom: 20px;
 }
 
-h1 {
-  text-align: center;
-}
-
 table {
   width: 100%;
   border-collapse: collapse;
-}
-
-th, td {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
 }
 
 th {
@@ -61,8 +51,9 @@ th {
   color: white;
 }
 
-.day-box {
-  margin-bottom: 20px;
+td, th {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
 }
 </style>
 </head>
@@ -100,9 +91,9 @@ th {
 
 <script>
 
-// 👉 Montag berechnen
-function getMonday(d) {
-  d = new Date(d);
+// 👉 Kalenderwoche (immer aktuelle Woche)
+function getMonday(date) {
+  const d = new Date(date);
   const day = d.getDay();
   const diff = d.getDate() - day + (day === 0 ? -6 : 1);
   return new Date(d.setDate(diff));
@@ -116,7 +107,6 @@ function getDayName(date) {
   return ["So","Mo","Di","Mi","Do","Fr","Sa"][date.getDay()];
 }
 
-// 🔥 HAUPTFUNKTION
 async function loadAdminData() {
 
   const monday = getMonday(new Date());
@@ -128,24 +118,13 @@ async function loadAdminData() {
     days.push(d);
   }
 
-  // 🔥 JOIN QUERY (funktioniert jetzt wegen FK!)
-  const { data: orders, error } = await window.supabaseClient
+  const { data: orders } = await window.supabaseClient
     .from("orders")
     .select(`
       order_date,
       selected_menu,
-      profiles (
-        full_name
-      )
+      profiles ( full_name )
     `);
-
-  console.log("ORDERS:", orders, error);
-
-  if (error) {
-    alert("Fehler beim Laden der Daten");
-    console.log(error);
-    return;
-  }
 
   const tbody = document.querySelector("#summaryTable tbody");
   const detailContainer = document.getElementById("detailContainer");
@@ -159,41 +138,33 @@ async function loadAdminData() {
 
     const dayOrders = orders.filter(o => o.order_date === dateStr);
 
-    const menu1Count = dayOrders.filter(o => o.selected_menu === "Menu 1").length;
-    const menu2Count = dayOrders.filter(o => o.selected_menu === "Menu 2").length;
+    const m1 = dayOrders.filter(o => o.selected_menu === "Menu 1").length;
+    const m2 = dayOrders.filter(o => o.selected_menu === "Menu 2").length;
 
-    // Übersicht Tabelle
     tbody.innerHTML += `
       <tr>
         <td>${getDayName(day)}</td>
         <td>${dateStr}</td>
-        <td>${menu1Count}</td>
-        <td>${menu2Count}</td>
+        <td>${m1}</td>
+        <td>${m2}</td>
       </tr>
     `;
 
-    // Detail Liste
-    let namesHTML = "";
+    let list = "";
 
     dayOrders.forEach(o => {
-
-      const name = o.profiles?.full_name || "Unbekannt";
-
-      namesHTML += `<li>${name} → ${o.selected_menu}</li>`;
+      list += `<li>${o.profiles?.full_name} → ${o.selected_menu}</li>`;
     });
 
     detailContainer.innerHTML += `
-      <div class="card day-box">
+      <div class="card">
         <h3>${getDayName(day)} - ${dateStr}</h3>
-        <ul>${namesHTML || "<li>Keine Bestellungen</li>"}</ul>
+        <ul>${list || "<li>Keine Bestellungen</li>"}</ul>
       </div>
     `;
-
   });
-
 }
 
-// 🚀 Start
 loadAdminData();
 
 </script>
