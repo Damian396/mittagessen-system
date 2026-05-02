@@ -9,7 +9,7 @@
 
 <h2>Mittagessen wählen</h2>
 
-<div id="menu"></div>
+<div id="menu">Lade Menü...</div><br>
 
 <button onclick="order('Menu 1')">Menü 1</button>
 <button onclick="order('Menu 2')">Menü 2</button>
@@ -24,7 +24,7 @@
 async function loadMenu() {
   const today = new Date().toISOString().split("T")[0];
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("weekly_menu")
     .select("*")
     .eq("menu_date", today)
@@ -33,6 +33,8 @@ async function loadMenu() {
   if (data) {
     document.getElementById("menu").innerHTML =
       `<b>${data.menu_1}</b><br>${data.menu_2}`;
+  } else {
+    document.getElementById("menu").innerText = "Kein Menü gefunden";
   }
 }
 
