@@ -12,37 +12,51 @@ body {
   background-color: #14968F;
   display: flex;
   justify-content: center;
-  align-items: center;
-  min-height: 100vh;
+  padding: 20px;
 }
 
 .card {
   background: white;
-  padding: 25px;
+  padding: 20px;
   border-radius: 12px;
-  width: 380px;
+  width: 100%;
+  max-width: 900px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
   text-align: center;
 }
 
-.day {
-  border: 1px solid #ddd;
-  padding: 10px;
-  margin: 10px 0;
-  border-radius: 8px;
+th {
+  background: #14968F;
+  color: white;
 }
 
 button {
-  width: 100%;
-  padding: 8px;
-  margin-top: 5px;
+  padding: 5px;
+  margin: 2px;
   background: #14968F;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
+  cursor: pointer;
 }
 
 .selected {
   background: #2ecc71 !important;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
 }
 </style>
 </head>
@@ -51,10 +65,12 @@ button {
 
 <div class="card">
 
-<h2>Deine Woche</h2>
-<button onclick="logout()">Logout</button>
+<div class="topbar">
+  <h2>3 Wochen Übersicht</h2>
+  <button onclick="logout()">Logout</button>
+</div>
 
-<div id="week"></div>
+<table id="table"></table>
 
 </div>
 
@@ -62,7 +78,7 @@ button {
 
 <script>
 
-let user = null;
+let user;
 
 async function checkUser() {
   const res = await window.supabaseClient.auth.getUser();
@@ -71,34 +87,45 @@ async function checkUser() {
     window.location.href = "login.html";
   } else {
     user = res.data.user;
-    loadWeek();
+    loadTable();
   }
 }
 
-function getWeekDates() {
-  const today = new Date();
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - today.getDay() + 1);
-
+function get3Weeks() {
   let days = [];
+  let start = new Date();
 
-  for (let i = 0; i < 5; i++) {
-    let d = new Date(monday);
-    d.setDate(monday.getDate() + i);
+  for (let i = 0; i < 21; i++) {
+    let d = new Date();
+    d.setDate(start.getDate() + i);
 
-    days.push({
-      date: d.toISOString().split("T")[0],
-      label: d.toLocaleDateString("de-CH", { weekday: 'long', day: '2-digit', month: '2-digit' })
-    });
+    // nur Mo–Fr
+    if (d.getDay() !== 0 && d.getDay() !== 6) {
+      days.push({
+        date: d.toISOString().split("T")[0],
+        label: d.toLocaleDateString("de-CH", {
+          weekday: "short",
+          day: "2-digit",
+          month: "2-digit"
+        })
+      });
+    }
   }
 
   return days;
 }
 
-async function loadWeek() {
-  const days = getWeekDates();
+async function loadTable() {
+  const days = get3Weeks();
 
-  let html = "";
+  let html = `
+    <tr>
+      <th>Datum</th>
+      <th>Menü 1</th>
+      <th>Menü 2</th>
+      <th>Aktion</th>
+    </tr>
+  `;
 
   for (let day of days) {
 
@@ -116,32 +143,36 @@ async function loadWeek() {
       .single();
 
     html += `
-      <div class="day">
-        <b>${day.label}</b><br><br>
+      <tr>
+        <td>${day.label}</td>
 
-        ${menu.data ? menu.data.menu_1 : "-"}<br>
-        ${menu.data ? menu.data.menu_2 : "-"}<br><br>
+        <td>
+          ${menu.data ? menu.data.menu_1 : "-"}<br>
+          <button onclick="orderMeal('${day.date}','Menu 1')"
+          ${order.data?.selected_menu === "Menu 1" ? "class='selected'" : ""}>
+          Wählen
+          </button>
+        </td>
 
-        <button onclick="orderMeal('${day.date}','Menu 1')"
-        ${order.data?.selected_menu === "Menu 1" ? "class='selected'" : ""}>
-        Menü 1
-        </button>
+        <td>
+          ${menu.data ? menu.data.menu_2 : "-"}<br>
+          <button onclick="orderMeal('${day.date}','Menu 2')"
+          ${order.data?.selected_menu === "Menu 2" ? "class='selected'" : ""}>
+          Wählen
+          </button>
+        </td>
 
-        <button onclick="orderMeal('${day.date}','Menu 2')"
-        ${order.data?.selected_menu === "Menu 2" ? "class='selected'" : ""}>
-        Menü 2
-        </button>
-
-        <button onclick="cancel('${day.date}')">Abmelden</button>
-      </div>
+        <td>
+          <button onclick="cancel('${day.date}')">Abmelden</button>
+        </td>
+      </tr>
     `;
   }
 
-  document.getElementById("week").innerHTML = html;
+  document.getElementById("table").innerHTML = html;
 }
 
 async function orderMeal(date, menu) {
-
   await window.supabaseClient
     .from("orders")
     .upsert({
@@ -151,7 +182,7 @@ async function orderMeal(date, menu) {
       status: "ordered"
     });
 
-  loadWeek();
+  loadTable();
 }
 
 async function cancel(date) {
@@ -161,7 +192,7 @@ async function cancel(date) {
     .eq("user_id", user.id)
     .eq("order_date", date);
 
-  loadWeek();
+  loadTable();
 }
 
 async function logout() {
