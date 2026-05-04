@@ -1,32 +1,49 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
+<meta charset="UTF-8">
 <title>Admin Login</title>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script src="supabase.js"></script>
 
 <style>
+* { box-sizing: border-box; }
+
 body {
   margin: 0;
-  font-family: Arial;
+  font-family: Arial, sans-serif;
   background-color: #14968F;
+  min-height: 100vh;
 }
 
 .topbar {
   position: fixed;
-  top: 10px;
-  left: 10px;
+  top: 14px;
+  left: 14px;
+  z-index: 100;
 }
 
 .topbar button {
-  background: white;
-  border: none;
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.2);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1.5px solid rgba(255,255,255,0.5);
+  color: white;
+  padding: 8px 16px 8px 12px;
+  border-radius: 50px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition: background 0.15s;
+}
+
+.topbar button:hover {
+  background: rgba(255,255,255,0.35);
 }
 
 .wrapper {
@@ -34,72 +51,75 @@ body {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  padding: 15px;
+  padding: 20px;
 }
 
 .card {
   background: white;
-  padding: 30px;
+  padding: 28px 24px;
   border-radius: 12px;
   width: 100%;
-  max-width: 320px;
+  max-width: 340px;
   text-align: center;
+}
+
+h2 {
+  color: #14968F;
+  margin-top: 0;
+  margin-bottom: 18px;
 }
 
 input {
   width: 100%;
   padding: 12px;
-  margin: 8px 0;
+  margin: 6px 0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
 }
 
 button {
   width: 100%;
-  padding: 12px;
+  padding: 13px;
+  margin-top: 10px;
   background: #14968F;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
 }
+
+button:hover { background: #0f7a74; }
 </style>
 </head>
 
 <body>
 
 <div class="topbar">
-<button onclick="history.back()">⬅ Zurück</button>
+  <button onclick="history.back()">⬅ Zurück</button>
 </div>
 
 <div class="wrapper">
-
-<div class="card">
-<h2>Admin Login</h2>
-
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Passwort">
-
-<button onclick="login()">Login</button>
-</div>
-
+  <div class="card">
+    <h2>Admin Login</h2>
+    <input id="email" placeholder="Email" type="email">
+    <input id="password" type="password" placeholder="Passwort">
+    <button onclick="login()">Login</button>
+  </div>
 </div>
 
 <script>
 async function login() {
-
   const res = await window.supabaseClient.auth.signInWithPassword({
     email: email.value,
     password: password.value
   });
 
-  if (res.error) {
-    alert("Login falsch");
-    return;
-  }
+  if (res.error) { alert("Login falsch"); return; }
 
   const profile = await window.supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", res.data.user.id)
-    .single();
+    .from("profiles").select("*").eq("id", res.data.user.id).single();
 
   if (!profile.data || profile.data.role !== "admin") {
     alert("Kein Admin!");
