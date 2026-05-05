@@ -291,6 +291,7 @@ input[type="checkbox"] {
             <th>Datum</th>
             <th>Menü 1</th>
             <th>Menü 2</th>
+            <th>Suppe und Gemischter Salat</th>
             <th>Anzahl</th>
             <th>Speichern</th>
             <th>Abmelden</th>
@@ -435,6 +436,7 @@ async function loadDashboard() {
 
     const m1Checked = selected === "Menu 1" ? "checked" : "";
     const m2Checked = selected === "Menu 2" ? "checked" : "";
+    const soupSaladChecked = selected === "Suppe und Gemischter Salat" ? "checked" : "";
 
     const tooLate = isOrderTooLate(dateStr);
     const disabled = tooLate ? "disabled" : "";
@@ -463,6 +465,15 @@ async function loadDashboard() {
             ${disabled}
             onclick="handleLate('${dateStr}')"
             onchange="selectTemp('${dateStr}', 'Menu 2')">
+        </td>
+
+        <td data-label="Suppe und Gemischter Salat">
+          <input 
+            type="checkbox" 
+            ${soupSaladChecked} 
+            ${disabled}
+            onclick="handleLate('${dateStr}')"
+            onchange="selectTemp('${dateStr}', 'Suppe und Gemischter Salat')">
         </td>
 
         <td data-label="Anzahl">
